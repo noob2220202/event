@@ -36,6 +36,10 @@ HELP_TEXT = (
     "  /placeholder <문자열>      당첨자 태그 placeholder 변경 (기본값: @태그)\n"
     "  /countplaceholder <문자열> 참여자 수 placeholder 변경 (기본값: {인원수})\n"
     "  /list                     현재 등록 상태 보기\n"
+    "\n"
+    "대상 채팅을 바로 그 채팅 안에서 설정하려면, 해당 그룹/채널에 직접\n"
+    "/groupset 이라고 보내세요 (저장된 메시지 아님). 그 채팅이 바로 발송\n"
+    "대상으로 등록되고, 명령/확인 메시지는 몇 초 후 자동 삭제됩니다.\n"
 )
 
 
@@ -113,15 +117,36 @@ async def handle(event):
         await event.reply(HELP_TEXT)
 
 
+async def handle_groupset(event):
+    """채널/그룹 안에서 /groupset 을 받으면 그 채팅 자체를 발송 대상으로 등록합니다."""
+    state = load_state()
+    state["target_chat"] = event.chat_id
+    save_state(state)
+
+    chat = await event.get_chat()
+    name = getattr(chat, "title", None) or getattr(chat, "username", None) or str(event.chat_id)
+    reply = await event.reply(f"✅ 발송 대상 채팅 설정: {name} ({event.chat_id})")
+
+    await asyncio.sleep(3)
+    await event.client.delete_messages(event.chat_id, [event.id, reply.id])
+
+
 async def main():
     client = build_client()
     await client.start()
+
+    me = await client.get_me()
 
     @client.on(events.NewMessage(chats=SAVED_MESSAGES, outgoing=True))
     async def _(event):
         await handle(event)
 
-    me = await client.get_me()
+    @client.on(events.NewMessage(outgoing=True, pattern=r"^/groupset\s*$"))
+    async def _(event):
+        if event.chat_id == me.id:
+            return  # 저장된 메시지(자기 자신)는 그룹 설정 대상이 아님
+        await handle_groupset(event)
+
     print(f"등록 리스너 시작됨 ({me.first_name}). 저장된 메시지에서 명령을 기다립니다. (/help)")
     await client.run_until_disconnected()
 
