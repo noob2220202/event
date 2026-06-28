@@ -9,6 +9,10 @@ template에 placeholder(기본 "@태그")가 포함되어 있으면 발송 시�
 import asyncio
 import json
 import logging
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
