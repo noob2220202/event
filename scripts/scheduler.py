@@ -78,8 +78,19 @@ def sync_jobs(scheduler: AsyncIOScheduler, client, state: dict):
     placeholder = state.get("placeholder", "@태그")
     count_placeholder = state.get("count_placeholder", "{인원수}")
     for stage_id, info in state.get("stages", {}).items():
-        hh, mm = (int(x) for x in info["time"].split(":"))
-        trigger = CronTrigger(day_of_week=info["weekday"], hour=hh, minute=mm, timezone=TIMEZONE)
+        try:
+            hh, mm = (int(x) for x in info["time"].split(":"))
+            trigger = CronTrigger(
+                day_of_week=info["weekday"], hour=hh, minute=mm, timezone=TIMEZONE
+            )
+        except (KeyError, ValueError) as e:
+            log.error(
+                "%s단계 스케줄 등록 실패 (등록값 확인 후 /%s 으로 다시 등록하세요): %s",
+                stage_id,
+                stage_id,
+                e,
+            )
+            continue
         scheduler.add_job(
             fire_stage,
             trigger=trigger,

@@ -65,7 +65,12 @@ def parse_command(text: str) -> Optional[Command]:
     if m:
         stage, weekday_token, hh, mm = m.groups()
         weekday = parse_weekday(weekday_token)
-        return RegisterStage(stage=stage, weekday=weekday, time=f"{int(hh):02d}:{int(mm):02d}")
+        hh, mm = int(hh), int(mm)
+        if not (0 <= hh <= 23):
+            raise ValueError(f"시(hour)는 0~23 사이여야 합니다: {hh!r} (자정은 00:00으로 입력하세요)")
+        if not (0 <= mm <= 59):
+            raise ValueError(f"분(minute)은 0~59 사이여야 합니다: {mm!r}")
+        return RegisterStage(stage=stage, weekday=weekday, time=f"{hh:02d}:{mm:02d}")
 
     m = _DEL_RE.match(text)
     if m:
