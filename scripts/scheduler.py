@@ -22,7 +22,7 @@ from raffle.mention import mention_replacement
 from raffle.send import render_with_replacements
 from raffle.state import load_state
 from raffle.template import fetch_template
-from raffle.winner import pick_random_winner
+from raffle.winner import get_eligible_participants, pick_random_winner
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("scheduler")
@@ -31,7 +31,9 @@ RELOAD_INTERVAL_SECONDS = 30
 TIMEZONE = "Asia/Seoul"
 
 
-async def fire_stage(client, stage_id: str, info: dict, target_chat, placeholder: str):
+async def fire_stage(
+    client, stage_id: str, info: dict, target_chat, placeholder: str, count_placeholder: str
+):
     if not target_chat:
         log.warning("target_chat이 설정되지 않아 %s단계를 건너뜁니다 (/chat 으로 설정하세요)", stage_id)
         return
@@ -42,8 +44,10 @@ async def fire_stage(client, stage_id: str, info: dict, target_chat, placeholder
         log.error("%s단계 템플릿 조회 실패: %s", stage_id, e)
         return
 
+    message_text = template.message or ""
     replacements = {}
-    if placeholder and placeholder in (template.message or ""):
+
+    if placeholder and placeholder in message_text:
         try:
             winner = await pick_random_winner(client, target_chat)
         except ValueError as e:
@@ -51,6 +55,15 @@ async def fire_stage(client, stage_id: str, info: dict, target_chat, placeholder
             return
         replacements[placeholder] = mention_replacement(winner)
         log.info("%s단계: 당첨자 추첨됨 (user_id=%s)", stage_id, winner.id)
+
+    if count_placeholder and count_placeholder in message_text:
+        try:
+            eligible = await get_eligible_participants(client, target_chat)
+        except Exception as e:
+            log.error("%s단계 참여자 수 조회 실패: %s", stage_id, e)
+            return
+        replacements[count_placeholder] = {"text": str(len(eligible))}
+        log.info("%s단계: 참여자 수 %d명으로 치환", stage_id, len(eligible))
 
     text, entities = render_with_replacements(template, replacements)
     await client.send_message(
@@ -63,13 +76,14 @@ def sync_jobs(scheduler: AsyncIOScheduler, client, state: dict):
     scheduler.remove_all_jobs()
     target_chat = state.get("target_chat")
     placeholder = state.get("placeholder", "@태그")
+    count_placeholder = state.get("count_placeholder", "{인원수}")
     for stage_id, info in state.get("stages", {}).items():
         hh, mm = (int(x) for x in info["time"].split(":"))
         trigger = CronTrigger(day_of_week=info["weekday"], hour=hh, minute=mm, timezone=TIMEZONE)
         scheduler.add_job(
             fire_stage,
             trigger=trigger,
-            args=[client, stage_id, info, target_chat, placeholder],
+            args=[client, stage_id, info, target_chat, placeholder, count_placeholder],
             id=f"stage-{stage_id}",
             misfire_grace_time=120,
             replace_existing=True,

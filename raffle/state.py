@@ -3,7 +3,12 @@ from pathlib import Path
 
 STATE_PATH = Path(__file__).resolve().parent.parent / "data" / "state.json"
 
-DEFAULT_STATE = {"target_chat": None, "placeholder": "@태그", "stages": {}}
+DEFAULT_STATE = {
+    "target_chat": None,
+    "placeholder": "@태그",
+    "count_placeholder": "{인원수}",
+    "stages": {},
+}
 
 
 def load_state() -> dict:

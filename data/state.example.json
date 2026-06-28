@@ -1,6 +1,7 @@
 {
   "target_chat": "@my_event_channel",
   "placeholder": "@태그",
+  "count_placeholder": "{인원수}",
   "stages": {
     "1": { "template_id": 1001, "weekday": 6, "time": "18:00" },
     "2": { "template_id": 1002, "weekday": 6, "time": "18:50" },

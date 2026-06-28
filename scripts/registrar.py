@@ -20,6 +20,7 @@ from raffle.commands import (
     ListState,
     RegisterStage,
     SetChat,
+    SetCountPlaceholder,
     SetPlaceholder,
     parse_command,
 )
@@ -32,7 +33,8 @@ HELP_TEXT = (
     "  템플릿 메시지에 답장 -> /<단계번호> <요일> <HH:MM>   예) /1 일 18:00\n"
     "  /del <단계번호>            단계 등록 삭제\n"
     "  /chat <대상채팅>           발송 대상 채팅 설정, 예) /chat @mychannel\n"
-    "  /placeholder <문자열>      태그 placeholder 변경 (기본값: @태그)\n"
+    "  /placeholder <문자열>      당첨자 태그 placeholder 변경 (기본값: @태그)\n"
+    "  /countplaceholder <문자열> 참여자 수 placeholder 변경 (기본값: {인원수})\n"
     "  /list                     현재 등록 상태 보기\n"
 )
 
@@ -40,7 +42,8 @@ HELP_TEXT = (
 def render_state_summary(state: dict) -> str:
     lines = [
         f"대상 채팅: {state.get('target_chat') or '(미설정, /chat 으로 설정하세요)'}",
-        f"placeholder: {state.get('placeholder')}",
+        f"태그 placeholder: {state.get('placeholder')}",
+        f"참여자 수 placeholder: {state.get('count_placeholder', '{인원수}')}",
         "단계:",
     ]
     stages = state.get("stages", {})
@@ -96,7 +99,12 @@ async def handle(event):
     elif isinstance(command, SetPlaceholder):
         state["placeholder"] = command.placeholder
         save_state(state)
-        await event.reply(f"✅ placeholder 변경: {command.placeholder}")
+        await event.reply(f"✅ 태그 placeholder 변경: {command.placeholder}")
+
+    elif isinstance(command, SetCountPlaceholder):
+        state["count_placeholder"] = command.placeholder
+        save_state(state)
+        await event.reply(f"✅ 참여자 수 placeholder 변경: {command.placeholder}")
 
     elif isinstance(command, ListState):
         await event.reply(render_state_summary(state))

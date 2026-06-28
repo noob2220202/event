@@ -8,6 +8,7 @@ _STAGE_RE = re.compile(r"^/(\d+)\s+(\S+)\s+(\d{1,2}):(\d{2})\s*$")
 _DEL_RE = re.compile(r"^/del\s+(\d+)\s*$")
 _CHAT_RE = re.compile(r"^/chat\s+(\S+)\s*$")
 _PLACEHOLDER_RE = re.compile(r"^/placeholder\s+(.+)$")
+_COUNT_PLACEHOLDER_RE = re.compile(r"^/countplaceholder\s+(.+)$")
 _LIST_RE = re.compile(r"^/list\s*$")
 _HELP_RE = re.compile(r"^/help\s*$")
 
@@ -35,6 +36,11 @@ class SetPlaceholder:
 
 
 @dataclass
+class SetCountPlaceholder:
+    placeholder: str
+
+
+@dataclass
 class ListState:
     pass
 
@@ -44,7 +50,9 @@ class Help:
     pass
 
 
-Command = Union[RegisterStage, DeleteStage, SetChat, SetPlaceholder, ListState, Help]
+Command = Union[
+    RegisterStage, DeleteStage, SetChat, SetPlaceholder, SetCountPlaceholder, ListState, Help
+]
 
 
 def parse_command(text: str) -> Optional[Command]:
@@ -70,6 +78,10 @@ def parse_command(text: str) -> Optional[Command]:
     m = _PLACEHOLDER_RE.match(text)
     if m:
         return SetPlaceholder(placeholder=m.group(1).strip())
+
+    m = _COUNT_PLACEHOLDER_RE.match(text)
+    if m:
+        return SetCountPlaceholder(placeholder=m.group(1).strip())
 
     if _LIST_RE.match(text):
         return ListState()
