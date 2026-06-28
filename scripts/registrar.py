@@ -148,6 +148,12 @@ async def main():
         await handle_groupset(event)
 
     print(f"등록 리스너 시작됨 ({me.first_name}). 저장된 메시지에서 명령을 기다립니다. (/help)")
+    if not getattr(me, "premium", False):
+        print(
+            "⚠️ 이 계정은 텔레그램 프리미엄이 아닙니다. 커스텀(프리미엄) 이모지는 새로 작성한 "
+            "메시지로는 전송되지 않고 기본 이모지로 깨집니다. scheduler가 자동으로 '포워딩' 방식으로 "
+            "발송해 이모지를 보존합니다. 인라인 태그+이모지를 원하면 이 계정에 프리미엄이 필요합니다."
+        )
     await client.run_until_disconnected()
 
 
